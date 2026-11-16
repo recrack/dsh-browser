@@ -21,9 +21,14 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install Chromium for browser integration tests
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
+        run: |
+          pnpm exec playwright-core install --with-deps chromium
+          node --input-type=module -e "import { chromium } from 'playwright-core'; process.stdout.write('DSHPLUGIN_BROWSER_EXECUTABLE_PATH=' + chromium.executablePath() + '\n')" >> "$GITHUB_ENV"
       - run: pnpm run build
       - run: pnpm run typecheck
       - run: pnpm test
       - name: Smoke the packed clean install
-        if: matrix.node == '24'
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
         run: pnpm run smoke:pack
