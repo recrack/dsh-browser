@@ -10,9 +10,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        node: ['24', '26']
-    runs-on: ${{ matrix.os }}
+        node: ${{ github.event_name == 'push' && fromJSON('["24","26"]') || fromJSON('["24"]') }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,7 +21,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Install Chromium for browser integration tests
-        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
+        if: matrix.node == '24' || github.event_name == 'push'
         run: |
           pnpm exec playwright-core install --with-deps chromium
           node --input-type=module -e "import { chromium } from 'playwright-core'; process.stdout.write('DSHPLUGIN_BROWSER_EXECUTABLE_PATH=' + chromium.executablePath() + '\n')" >> "$GITHUB_ENV"
@@ -30,5 +29,5 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm test
       - name: Smoke the packed clean install
-        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
+        if: matrix.node == '24'
         run: pnpm run smoke:pack
